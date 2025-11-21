@@ -1,0 +1,5 @@
+{
+  "name": "Fridge MV POS",
+  "description": "A comprehensive Point of Sale system featuring glassmorphism UI, inventory management, multi-user dashboards (Admin, In-House, Delivery), credit tracking, and invoicing.",
+  "requestFramePermissions": []
+}

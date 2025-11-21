@@ -1,37 +1,39 @@
-
 import React from 'react';
 import { useStore } from '../services/store';
 import { UserRole } from '../types';
+import { useNavigate, useLocation } from 'react-router-dom';
 
-interface SidebarProps {
-  activePage: string;
-  setActivePage: (page: string) => void;
-}
-
-export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
+export const Sidebar: React.FC = () => {
   const { currentUser, logout } = useStore();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const menuItems = {
     [UserRole.ADMIN]: [
-      { id: 'dashboard', icon: 'fa-chart-line', label: 'Dashboard' },
-      { id: 'pos', icon: 'fa-cash-register', label: 'POS Terminal' },
-      { id: 'inventory', icon: 'fa-boxes', label: 'Inventory' },
-      { id: 'customers', icon: 'fa-users', label: 'Users & Customers' },
-      { id: 'wholesalers', icon: 'fa-truck', label: 'Wholesalers' },
-      { id: 'invoices', icon: 'fa-file-invoice-dollar', label: 'Invoices' },
-      { id: 'settings', icon: 'fa-cog', label: 'Settings' },
+      { id: '/admin', icon: 'fa-chart-line', label: 'Dashboard' },
+      { id: '/pos', icon: 'fa-cash-register', label: 'POS Terminal' },
+      { id: '/inventory', icon: 'fa-boxes', label: 'Inventory' },
+      { id: '/customers', icon: 'fa-users', label: 'Users & Customers' },
+      { id: '/wholesalers', icon: 'fa-truck', label: 'Wholesalers' },
+      { id: '/invoices', icon: 'fa-file-invoice-dollar', label: 'Invoices' },
+      { id: '/settings', icon: 'fa-cog', label: 'Settings' },
     ],
     [UserRole.CASHIER]: [
-      { id: 'pos', icon: 'fa-cash-register', label: 'POS Terminal' },
-      { id: 'customers', icon: 'fa-users', label: 'Customers' }, 
-      { id: 'inventory', icon: 'fa-boxes', label: 'Check Stock' },
+      { id: '/pos', icon: 'fa-cash-register', label: 'POS Terminal' },
+      { id: '/customers', icon: 'fa-users', label: 'Customers' }, 
+      { id: '/inventory', icon: 'fa-boxes', label: 'Check Stock' },
     ],
-    [UserRole.CUSTOMER]: [] // No dashboard for offline customers
+    [UserRole.CUSTOMER]: [] 
   };
 
   if (!currentUser) return null;
 
   const items = menuItems[currentUser.role] || [];
+
+  const handleLogout = () => {
+      logout();
+      navigate('/login');
+  };
 
   return (
     <div className="w-64 h-full glass flex flex-col justify-between flex-shrink-0 no-print z-50">
@@ -43,9 +45,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) =
           {items.map((item) => (
             <button
               key={item.id}
-              onClick={() => setActivePage(item.id)}
+              onClick={() => navigate(item.id)}
               className={`w-full text-left px-4 py-3 rounded-xl transition-all duration-200 flex items-center gap-3 ${
-                activePage === item.id 
+                location.pathname === item.id 
                 ? 'bg-white/20 text-white shadow-lg border border-white/20' 
                 : 'text-white/70 hover:bg-white/10 hover:text-white'
               }`}
@@ -67,7 +69,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) =
             </div>
         </div>
         <button 
-            onClick={logout}
+            onClick={handleLogout}
             className="w-full py-2 rounded-lg bg-red-500/20 text-red-100 hover:bg-red-500/30 border border-red-500/20 flex items-center justify-center gap-2 transition-all"
         >
             <i className="fas fa-sign-out-alt"></i> Logout

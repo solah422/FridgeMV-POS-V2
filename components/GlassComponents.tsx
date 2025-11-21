@@ -1,4 +1,3 @@
-
 import React, { InputHTMLAttributes, ButtonHTMLAttributes, useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -87,27 +86,17 @@ export const Select: React.FC<SelectProps> = ({ label, value, onChange, options,
         }
     };
     
-    updatePosition();
-    window.addEventListener('scroll', updatePosition, true);
-    window.addEventListener('resize', updatePosition);
+    if (isOpen) {
+        updatePosition();
+        window.addEventListener('scroll', updatePosition, true);
+        window.addEventListener('resize', updatePosition);
+    }
     
     return () => {
         window.removeEventListener('scroll', updatePosition, true);
         window.removeEventListener('resize', updatePosition);
     };
   }, [isOpen]);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-         // Also check if clicking inside the portal content (which is tricky without ref to portal content directly, but simplistic approach works for now if we rely on z-index/focus)
-         // Actually, easier to just close on any click outside the trigger.
-         // We add a backdrop for the portal to handle 'click outside' logic properly.
-      }
-    };
-    // document.addEventListener('mousedown', handleClickOutside);
-    // return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   const handleSelect = (optionValue: string | number) => {
     onChange({ target: { value: optionValue } });

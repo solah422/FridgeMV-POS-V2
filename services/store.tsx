@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, UserRole, InventoryItem, Wholesaler, Invoice, Notification, AppSettings, PurchaseOrder, POTimelineEvent, DeliveryRequest, VerificationToken } from '../types';
+import { User, UserRole, InventoryItem, Wholesaler, Invoice, Notification, AppSettings, PurchaseOrder, POTimelineEvent } from '../types';
 
 interface StoreContextType {
   currentUser: User | null;
@@ -10,18 +10,12 @@ interface StoreContextType {
   invoices: Invoice[];
   notifications: Notification[];
   purchaseOrders: PurchaseOrder[];
-  deliveryRequests: DeliveryRequest[];
   settings: AppSettings;
-  verificationTokens: VerificationToken[];
   
   // Actions
-  login: (redboxId: string, password?: string) => boolean; // Updated to require password for registered users
+  login: (role: UserRole, username: string, password?: string) => boolean;
   logout: () => void;
   
-  // Account Management
-  generateVerificationCode: (redboxId: string) => string | null;
-  registerUser: (redboxId: string, code: string, password: string) => { success: boolean; message: string };
-
   addUser: (user: User) => void;
   bulkAddUsers: (users: User[]) => void;
   updateUser: (user: User) => void;
@@ -32,14 +26,10 @@ interface StoreContextType {
   addWholesaler: (wholesaler: Wholesaler) => void;
   updateWholesaler: (wholesaler: Wholesaler) => void;
   createInvoice: (invoice: Invoice) => void;
-  updateInvoiceStatus: (invoiceId: string, status: Invoice['status'], proof?: string) => void;
+  updateInvoiceStatus: (invoiceId: string, status: Invoice['status']) => void;
   createPurchaseOrder: (po: PurchaseOrder) => void;
   updatePurchaseOrderStatus: (poId: string, status: PurchaseOrder['status'], receivedItems?: {itemId: string, qty: number}[]) => void;
   
-  // Delivery Actions
-  addDeliveryRequest: (req: DeliveryRequest) => void;
-  updateDeliveryRequestStatus: (id: string, status: DeliveryRequest['status']) => void;
-
   sendNotification: (notif: Notification) => void;
   markNotificationAsRead: (id: string) => void;
   updateSettings: (settings: AppSettings) => void;
@@ -47,258 +37,107 @@ interface StoreContextType {
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
-// Mock Data
-const MOCK_USERS: User[] = [
+// --- DEFAULT DATA FOR OFFLINE MODE ---
+
+const DEFAULT_USERS: User[] = [
   { 
     id: '1', 
-    name: 'Admin User', 
-    mobile: '9999999', 
-    redboxId: 'ADMIN01', 
+    name: 'System Admin', 
+    mobile: '0000000', 
+    username: 'admin', 
     role: UserRole.ADMIN, 
     creditLimit: 0, 
     currentBalance: 0, 
     status: 'ACTIVE',
-    email: 'admin@fridgemv.com',
-    password: 'admin', // Default demo password
-    isRegistered: true
+    email: 'admin@local.pos',
+    password: 'admin', // Default Offline Password (Change in Settings)
   },
   { 
     id: '2', 
-    name: 'Fatima Ali', 
-    mobile: '7771122', 
-    redboxId: 'RB-055', 
-    role: UserRole.CUSTOMER_INHOUSE, 
-    creditLimit: 500, 
-    currentBalance: 150, 
-    status: 'ACTIVE',
-    email: 'fatima@gmail.com',
-    address: 'Ma. Rose Garden, 3rd Floor',
-    notes: 'Prefers payments via BML Transfer.',
-    password: '123',
-    isRegistered: true
-  },
-  { 
-    id: '3', 
-    name: 'Ahmed Delivery', 
-    mobile: '7773344', 
-    redboxId: 'RB-102', 
-    role: UserRole.CUSTOMER_DELIVERY, 
-    creditLimit: 1000, 
-    currentBalance: 0, 
-    status: 'ACTIVE',
-    email: 'ahmed.del@yahoo.com',
-    address: 'H. Blue Villa',
-    deliveryAddressLine: 'H. Blue Villa, 2nd Floor',
-    deliveryArea: 'Henveiru',
-    deliveryCity: 'Male',
-    deliveryNotes: 'Ring bell twice.',
-    password: '123',
-    isRegistered: true
-  },
-  { 
-    id: '4', 
-    name: 'Sarah Finance', 
-    mobile: '9991111', 
-    redboxId: 'FIN-01', 
-    role: UserRole.FINANCE, 
-    creditLimit: 0, 
-    currentBalance: 0, 
-    status: 'ACTIVE',
-    email: 'finance@fridgemv.com',
-    password: '123',
-    isRegistered: true
-  },
-  { 
-    id: '5', 
-    name: 'John Cashier', 
-    mobile: '9992222', 
-    redboxId: 'POS-01', 
+    name: 'Main Cashier', 
+    mobile: '0000000', 
+    username: 'cashier', 
     role: UserRole.CASHIER, 
     creditLimit: 0, 
     currentBalance: 0, 
     status: 'ACTIVE',
-    email: 'cashier@fridgemv.com',
-    password: '123',
-    isRegistered: true
-  },
-  {
-      id: '6',
-      name: 'New Unregistered User',
-      mobile: '7770000',
-      redboxId: 'NEW-001',
-      role: UserRole.CUSTOMER_INHOUSE,
-      creditLimit: 500,
-      currentBalance: 0,
-      status: 'ACTIVE',
-      isRegistered: false
+    email: 'cashier@local.pos',
+    password: '123', // Default Offline Password
   }
 ];
 
-const MOCK_INVENTORY: InventoryItem[] = [
-  { id: '1', name: 'Wireless Mouse', sku: 'PER-001', qty: 50, minStock: 10, price: 150, details: 'Logitech Silent Touch', category: 'Electronics', status: 'IN_STOCK', lastPurchasePrice: 100, lastSupplierId: '1', lastSupplierName: 'Tech Supplies Maldives' },
-  { id: '2', name: 'Mechanical Keyboard', sku: 'PER-002', qty: 5, minStock: 8, price: 1200, details: 'RGB Backlit Blue Switch', category: 'Electronics', status: 'LOW_STOCK', lastPurchasePrice: 950, lastSupplierId: '1', lastSupplierName: 'Tech Supplies Maldives' },
-  { id: '3', name: 'USB-C Cable', sku: 'ACC-005', qty: 100, minStock: 20, price: 85, details: 'Braided 2m', category: 'Accessories', status: 'IN_STOCK', lastPurchasePrice: 40 },
-  { id: '4', name: 'Coca Cola 500ml', sku: 'DRK-101', qty: 0, minStock: 24, price: 15, details: 'Chilled', category: 'Drinks', status: 'OUT_OF_STOCK', lastPurchasePrice: 8 },
-];
-
-const MOCK_WHOLESALERS: Wholesaler[] = [
-  { 
-      id: '1', 
-      name: 'Tech Supplies Maldives', 
-      code: 'TSM-001',
-      contact: 'Ali Riza', 
-      phone: '333-4444',
-      email: 'sales@techsupplies.mv',
-      address: 'H. Orchid Magu, Male',
-      city: 'Male',
-      itemsSupplied: 'Peripherals, Cables',
-      linkedInventoryIds: ['1', '2'],
-      tags: ['Electronics', 'Reliable'],
-      paymentTerms: 'Cash on Pickup',
-      status: 'ACTIVE',
-      notes: 'Main supplier for all IT equipment.'
-  },
-  { 
-      id: '2', 
-      name: 'Happy Drinks Pvt Ltd', 
-      code: 'HDP-022',
-      contact: 'Manager', 
-      phone: '777-8888',
-      email: 'orders@happydrinks.com',
-      address: 'M. Boduthakurufaanu Magu',
-      city: 'Male',
-      itemsSupplied: 'Beverages',
-      linkedInventoryIds: ['4'],
-      tags: ['Beverages'],
-      paymentTerms: 'Cash on Pickup',
-      status: 'ACTIVE',
-      notes: 'Call before pickup.'
-  },
-];
-
-const MOCK_INVOICES: Invoice[] = [
-  {
-    id: 'INV-2023-001',
-    customerId: '2',
-    customerName: 'Fatima Ali',
-    date: new Date().toISOString(),
-    status: 'UNPAID',
-    type: 'SINGLE_DAY',
-    totalAmount: 150,
-    items: [{ itemId: '1', itemName: 'Wireless Mouse', qty: 1, price: 150, total: 150 }]
-  }
-];
-
-const MOCK_DELIVERY_REQUESTS: DeliveryRequest[] = [
-  {
-    id: 'DEL-101',
-    customerId: '3',
-    customerName: 'Ahmed Delivery',
-    deliveryAddressLine: 'H. Blue Villa, 2nd Floor',
-    deliveryArea: 'Henveiru',
-    deliveryCity: 'Male',
-    requestedTime: 'ASAP',
-    status: 'NEW',
-    date: new Date().toISOString(),
-    notes: 'Please call upon arrival'
-  }
-];
-
-export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [users, setUsers] = useState<User[]>(MOCK_USERS);
-  const [inventory, setInventory] = useState<InventoryItem[]>(MOCK_INVENTORY);
-  const [wholesalers, setWholesalers] = useState<Wholesaler[]>(MOCK_WHOLESALERS);
-  const [invoices, setInvoices] = useState<Invoice[]>(MOCK_INVOICES);
-  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
-  const [deliveryRequests, setDeliveryRequests] = useState<DeliveryRequest[]>(MOCK_DELIVERY_REQUESTS);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [verificationTokens, setVerificationTokens] = useState<VerificationToken[]>([]);
-  
-  const [settings, setSettings] = useState<AppSettings>({
-    shopName: 'Fridge MV POS',
+const DEFAULT_SETTINGS: AppSettings = {
+    shopName: 'Fridge MV POS (Offline)',
     island: 'Male\'',
     country: 'Maldives',
     contactNumber: '+960 777-0000',
-    email: 'support@fridgemv.com',
+    email: 'admin@fridgemv.local',
     defaultCreditLimit: 500,
     currency: 'MVR',
-    bankDetails: 'Account Name: Fridge MV Pvt Ltd\nAccount Number: 77300002222333\nBank: Bank of Maldives\nViber Slip: 777-0000'
-  });
+    bankDetails: 'BML Account: 7730000xxxxxxx'
+};
+
+// --- HELPER: LOCAL STORAGE HOOK ---
+function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T | ((val: T) => T)) => void] {
+    // Initialize state
+    const [storedValue, setStoredValue] = useState<T>(() => {
+        try {
+            const item = window.localStorage.getItem(key);
+            return item ? JSON.parse(item) : initialValue;
+        } catch (error) {
+            console.error(error);
+            return initialValue;
+        }
+    });
+
+    // Return a wrapped version of useState's setter function that ...
+    // ... persists the new value to localStorage.
+    const setValue = (value: T | ((val: T) => T)) => {
+        try {
+            // Allow value to be a function so we have same API as useState
+            const valueToStore = value instanceof Function ? value(storedValue) : value;
+            setStoredValue(valueToStore);
+            window.localStorage.setItem(key, JSON.stringify(valueToStore));
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    return [storedValue, setValue];
+}
+
+export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [currentUser, setCurrentUser] = useState<User | null>(null); // Session is volatile, not persisted
+  
+  // Persistent Data
+  const [users, setUsers] = useLocalStorage<User[]>('pos_users', DEFAULT_USERS);
+  const [inventory, setInventory] = useLocalStorage<InventoryItem[]>('pos_inventory', []);
+  const [wholesalers, setWholesalers] = useLocalStorage<Wholesaler[]>('pos_wholesalers', []);
+  const [invoices, setInvoices] = useLocalStorage<Invoice[]>('pos_invoices', []);
+  const [purchaseOrders, setPurchaseOrders] = useLocalStorage<PurchaseOrder[]>('pos_purchase_orders', []);
+  const [notifications, setNotifications] = useLocalStorage<Notification[]>('pos_notifications', []);
+  const [settings, setSettings] = useLocalStorage<AppSettings>('pos_settings', DEFAULT_SETTINGS);
 
   // --- AUTHENTICATION ---
 
-  const login = (redboxId: string, password?: string): boolean => {
-    const user = users.find(u => u.redboxId === redboxId);
+  const login = (role: UserRole, username: string, password?: string): boolean => {
+    const user = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.role === role);
     
     if (!user) return false;
 
-    // For legacy/demo purposes, if user is registered, they MUST check password
-    if (user.isRegistered) {
-        if (user.password === password) {
-            setCurrentUser(user);
-            return true;
-        }
-        return false;
-    } else {
-        // If user is NOT registered, they cannot login. They must sign up.
-        return false;
+    if (user.password === password) {
+        setCurrentUser(user);
+        return true;
     }
+    return false;
   };
 
   const logout = () => setCurrentUser(null);
 
-  const generateVerificationCode = (redboxId: string): string | null => {
-      const user = users.find(u => u.redboxId === redboxId);
-      if (!user) return null;
-
-      // Generate 6 digit code
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
-      
-      // Remove existing tokens for this user
-      const cleanTokens = verificationTokens.filter(t => t.redboxId !== redboxId);
-      
-      const newToken: VerificationToken = {
-          userId: user.id,
-          redboxId: user.redboxId,
-          code,
-          expiresAt: Date.now() + (10 * 60 * 1000) // 10 minutes
-      };
-
-      setVerificationTokens([...cleanTokens, newToken]);
-      return code;
-  };
-
-  const registerUser = (redboxId: string, code: string, password: string): { success: boolean; message: string } => {
-      const user = users.find(u => u.redboxId === redboxId);
-      if (!user) return { success: false, message: 'User not found.' };
-      
-      if (user.isRegistered) return { success: false, message: 'Account already registered. Please login.' };
-
-      const token = verificationTokens.find(t => t.redboxId === redboxId && t.code === code);
-      
-      if (!token) return { success: false, message: 'Invalid verification code.' };
-      if (Date.now() > token.expiresAt) return { success: false, message: 'Verification code expired.' };
-
-      // Success
-      const updatedUser: User = {
-          ...user,
-          password,
-          isRegistered: true,
-          status: 'ACTIVE'
-      };
-      
-      setUsers(users.map(u => u.id === user.id ? updatedUser : u));
-      // Remove used token
-      setVerificationTokens(verificationTokens.filter(t => t.redboxId !== redboxId));
-      
-      return { success: true, message: 'Account created successfully!' };
-  };
-
   // --- DATA ACTIONS ---
 
   const addUser = (user: User) => setUsers([...users, user]);
-  const bulkAddUsers = (newUsers: User[]) => setUsers(prev => [...prev, ...newUsers]);
+  const bulkAddUsers = (newUsers: User[]) => setUsers([...users, ...newUsers]);
 
   const updateUser = (updatedUser: User) => {
     setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
@@ -312,17 +151,16 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   const addInventoryItem = (item: InventoryItem) => setInventory([...inventory, item]);
-  const bulkAddInventoryItem = (items: InventoryItem[]) => setInventory(prev => [...prev, ...items]);
+  const bulkAddInventoryItem = (items: InventoryItem[]) => setInventory([...inventory, ...items]);
 
   const updateInventoryItem = (updatedItem: InventoryItem) => {
     setInventory(inventory.map(i => i.id === updatedItem.id ? updatedItem : i));
   };
 
-  const addWholesaler = (w: Wholesaler) => setWholesalerForm([...wholesalers, w]);
+  const addWholesaler = (w: Wholesaler) => setWholesalers([...wholesalers, w]);
   const updateWholesaler = (updated: Wholesaler) => {
     setWholesalers(wholesalers.map(w => w.id === updated.id ? updated : w));
   };
-  const setWholesalerForm = (w: Wholesaler[]) => setWholesalers(w);
 
   const createInvoice = (invoice: Invoice) => {
     setInvoices([invoice, ...invoices]);
@@ -338,16 +176,21 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     });
   };
 
-  const updateInvoiceStatus = (invoiceId: string, status: Invoice['status'], proof?: string) => {
+  const updateInvoiceStatus = (invoiceId: string, status: Invoice['status']) => {
     const invoice = invoices.find(i => i.id === invoiceId);
     if (!invoice) return;
 
-    setInvoices(invoices.map(i => i.id === invoiceId ? { ...i, status, proofOfPayment: proof || i.proofOfPayment } : i));
+    setInvoices(invoices.map(i => i.id === invoiceId ? { ...i, status } : i));
     
     if (status === 'PAID' && invoice.status !== 'PAID') {
         const user = users.find(u => u.id === invoice.customerId);
         if (user) {
             updateUser({ ...user, currentBalance: user.currentBalance - invoice.totalAmount });
+        }
+    } else if (status === 'UNPAID' && invoice.status === 'PAID') {
+        const user = users.find(u => u.id === invoice.customerId);
+        if (user) {
+            updateUser({ ...user, currentBalance: user.currentBalance + invoice.totalAmount });
         }
     }
   };
@@ -435,14 +278,6 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }
   };
 
-  const addDeliveryRequest = (req: DeliveryRequest) => {
-      setDeliveryRequests([req, ...deliveryRequests]);
-  };
-
-  const updateDeliveryRequestStatus = (id: string, status: DeliveryRequest['status']) => {
-      setDeliveryRequests(deliveryRequests.map(d => d.id === id ? { ...d, status } : d));
-  };
-
   const sendNotification = (notif: Notification) => setNotifications((prev) => [notif, ...prev]);
   
   const markNotificationAsRead = (id: string) => {
@@ -453,12 +288,11 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   return (
     <StoreContext.Provider value={{
-      currentUser, users, inventory, wholesalers, invoices, notifications, purchaseOrders, settings, deliveryRequests, verificationTokens,
-      login, logout, generateVerificationCode, registerUser, 
+      currentUser, users, inventory, wholesalers, invoices, notifications, purchaseOrders, settings,
+      login, logout, 
       addUser, bulkAddUsers, updateUser, deleteUser, addInventoryItem, bulkAddInventoryItem, updateInventoryItem,
       addWholesaler, updateWholesaler, createInvoice, updateInvoiceStatus, 
       createPurchaseOrder, updatePurchaseOrderStatus,
-      addDeliveryRequest, updateDeliveryRequestStatus,
       sendNotification, markNotificationAsRead, updateSettings
     }}>
       {children}

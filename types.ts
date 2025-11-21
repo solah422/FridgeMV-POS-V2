@@ -1,10 +1,9 @@
 
 export enum UserRole {
   ADMIN = 'ADMIN',
-  FINANCE = 'FINANCE',
   CASHIER = 'CASHIER',
-  CUSTOMER_INHOUSE = 'CUSTOMER_INHOUSE',
-  CUSTOMER_DELIVERY = 'CUSTOMER_DELIVERY',
+  // Customers are just tracked users without login access in Offline Mode
+  CUSTOMER = 'CUSTOMER', 
 }
 
 export interface User {
@@ -12,33 +11,17 @@ export interface User {
   name: string;
   mobile: string;
   email?: string;
-  address?: string; // General/Billing Address
-  redboxId: string;
-  telegramId?: string; 
+  address?: string; // Billing Address
+  username: string; // Replaces Redbox ID for offline simplicity
   role: UserRole;
   creditLimit: number; 
   currentBalance: number; 
-  avatar?: string;
   notes?: string; // Internal Admin Notes
   status: 'ACTIVE' | 'INACTIVE';
   joinedDate?: string;
   
   // Auth
-  password?: string; // Mocked hashed password
-  isRegistered: boolean; // True if they have completed signup with Verification Code
-
-  // Delivery Profile Fields
-  deliveryAddressLine?: string;
-  deliveryArea?: string;
-  deliveryCity?: string;
-  deliveryNotes?: string; // Customer's default delivery instructions
-}
-
-export interface VerificationToken {
-    userId: string;
-    redboxId: string;
-    code: string;
-    expiresAt: number; // Timestamp
+  password?: string; 
 }
 
 export interface InventoryItem {
@@ -90,9 +73,9 @@ export interface Invoice {
   date: string; 
   items: InvoiceItem[];
   totalAmount: number;
-  status: 'PAID' | 'UNPAID' | 'PENDING_APPROVAL';
+  status: 'PAID' | 'UNPAID';
   type: 'SINGLE_DAY' | 'MULTI_DAY';
-  proofOfPayment?: string; 
+  notes?: string; 
 }
 
 export interface POItem {
@@ -137,22 +120,6 @@ export interface Notification {
   message: string;
   date: string;
   read: boolean;
-}
-
-export interface DeliveryRequest {
-  id: string;
-  customerId: string;
-  customerName: string;
-  
-  // Snapshot Address (Copied from Profile at time of request)
-  deliveryAddressLine: string;
-  deliveryArea: string;
-  deliveryCity: string;
-  
-  requestedTime: string; 
-  notes?: string; // Specific notes for this request
-  status: 'NEW' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
-  date: string;
 }
 
 export interface AppSettings {

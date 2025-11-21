@@ -17,7 +17,7 @@ const POSCustomerSelector: React.FC<{
 
     // Filter Customers Only
     const customers = useMemo(() => users.filter(u => 
-        u.role === UserRole.CUSTOMER_INHOUSE || u.role === UserRole.CUSTOMER_DELIVERY
+        u.role === UserRole.CUSTOMER
     ), [users]);
 
     useEffect(() => {
@@ -31,7 +31,7 @@ const POSCustomerSelector: React.FC<{
     const filtered = customers.filter(u => 
         u.name.toLowerCase().includes(query.toLowerCase()) || 
         u.mobile.includes(query) ||
-        (u.redboxId && u.redboxId.toLowerCase().includes(query.toLowerCase()))
+        (u.username && u.username.toLowerCase().includes(query.toLowerCase()))
     );
 
     useEffect(() => {
@@ -118,7 +118,7 @@ const POSCustomerSelector: React.FC<{
                                 >
                                     <div className="flex justify-between items-center">
                                         <span className="text-white font-bold text-sm">{user.name}</span>
-                                        <span className="text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-white/50">{user.redboxId}</span>
+                                        <span className="text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-white/50">{user.username}</span>
                                     </div>
                                     <div className="text-xs text-white/40 mt-0.5">{user.mobile}</div>
                                 </div>

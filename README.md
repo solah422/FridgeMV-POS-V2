@@ -1,60 +1,53 @@
-# Fridge MV POS - Point of Sale System
 
-A modern, glassmorphism-styled Point of Sale (POS) and Inventory Management System designed for wholesalers and retail operations.
+# Fridge MV POS (Offline Edition) - v2.0.0
 
-## 🚀 Features
+A lightweight, fully offline Point of Sale (POS) system designed for local deployment.
 
-*   **Role-Based Dashboards**: Admin, Finance, Cashier, and Customer (In-House & Delivery).
-*   **Inventory Management**: Real-time stock tracking, SKU management, and low-stock alerts.
-*   **POS Terminal**: Fast checkout with barcode support, credit sales, and cash sales.
-*   **Invoicing**: PDF invoice generation, credit tracking, and payment verification (Cash/Bank Transfer).
-*   **Purchase Orders (PO)**: Wholesaler management, PO creation, GST calculation, and stock receiving.
-*   **Delivery System**: Dedicated flow for delivery customers to request deliveries based on their profile address.
-*   **Secure Auth**: Redbox ID + One-Time Verification Code system for account creation.
+## 🚀 Features (Offline Edition)
+*   **100% Offline**: No internet required. Data saved to browser Local Storage.
+*   **Roles**: Admin (Management) and Cashier (POS Only).
+*   **POS Terminal**: Fast checkout, barcode support (via SKU input), and receipt generation.
+*   **Inventory**: Track stock, low stock alerts, and bulk CSV import.
+*   **Invoicing**: Generate PDF invoices locally.
+*   **Purchase Orders**: Manage wholesalers and receiving.
 
-## 🛠 Tech Stack
+## 🛠 Installation Guide (Local)
 
-*   **Frontend**: React (TypeScript)
-*   **Styling**: Tailwind CSS
-*   **Build Tool**: Vite (implied via Create React App or similar)
-*   **Persistence**: Local Storage (Mock Service for Demo)
+### Prerequisites
+*   Node.js installed on your computer.
 
-## 📦 Installation & Local Development
+### Step 1: Install & Build
+1.  Open terminal in project folder.
+2.  Run `npm install`
+3.  Run `npm run build`
+4.  The `dist` (or `build`) folder now contains your standalone app.
 
-1.  **Clone the repository**
-    ```bash
-    git clone https://github.com/your-repo/fridgemv-pos.git
-    cd fridgemv-pos
-    ```
+### Step 2: Run Locally
+You need a simple static file server to run the app.
 
-2.  **Install Dependencies**
-    ```bash
-    npm install
-    ```
+**Option A: Use `serve` (Recommended)**
+1.  Run `npm install -g serve`
+2.  Run `serve -s dist`
+3.  Open browser at `http://localhost:3000`
 
-3.  **Start Dev Server**
-    ```bash
-    npm start
-    ```
+**Option B: Standard Web Server (XAMPP/WAMP)**
+1.  Copy the contents of `dist` into your `htdocs` or `www` folder.
+2.  Access via `http://localhost/fridgemvpos`
 
-4.  **Build for Production**
-    ```bash
-    npm run build
-    ```
+## 🔐 Default Login Credentials
+Since this is an offline app, default accounts are hardcoded for initial access. You can change passwords in the Users settings.
 
-## 🔐 Authentication Flow (Important)
+*   **Admin**: 
+    *   Username: `admin`
+    *   Password: `admin`
+*   **Cashier**:
+    *   Username: `cashier`
+    *   Password: `123`
 
-This system uses a restricted sign-up process:
-
-1.  **Admin** creates a user profile in the `Users` tab.
-2.  **Admin** generates a **Verification Code** from the Admin Dashboard for that specific Redbox ID.
-3.  **User** goes to the Sign Up page, enters their Redbox ID, the Code, and sets their password.
-4.  **User** can now log in.
-
-*Default Demo Credentials:*
-*   **Admin**: ID: `ADMIN01` | Pass: `admin`
-*   **Cashier**: ID: `POS-01` | Pass: `123`
+## ⚠️ Data Persistence Note
+Data is stored in your **Browser's Local Storage**. 
+*   If you clear your browser cache/data, you will **LOSE** all POS data.
+*   We recommend using a dedicated browser profile for the POS to prevent accidental clearing.
 
 ## 📝 License
-
-MIT License.
+MIT License
